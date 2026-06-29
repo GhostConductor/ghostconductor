@@ -16,8 +16,11 @@ Each agent runs in an isolated Docker container on a dedicated branch, torn down
 
 **Via Homebrew:**
 ```bash
+# install 
 brew tap ghostconductor/ghostconductor
 brew install ghostconductor
+# run
+ghostconductor
 ```
 
 **Or download the binary directly:**

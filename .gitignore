@@ -1,0 +1,18 @@
+# Binary
+gc-desktop
+
+# Go
+*.exe
+*.test
+*.out
+vendor/
+
+# UI
+ui/dist/
+ui/node_modules/
+
+# Config
+~/.gc-desktop/
+
+# OS
+.DS_Store

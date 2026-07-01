@@ -13,33 +13,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
 
-      - name: Download web-ui release
-        run: |
-          curl -L \
-            "$(curl -s https://api.github.com/repos/GhostConductor/web-ui/releases/latest | jq -r '.assets[0].browser_download_url')" \
-            -o web-ui.tar.gz
-          mkdir -p ui/dist
-          tar -xzf web-ui.tar.gz -C ui/dist --strip-components=1
-
-      - name: Build darwin/arm64
-        run: GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.defaultImage=ghcr.io/ghostconductor/ghost:latest" -o ghostconductor-darwin-arm64 .
-
-      - name: Build darwin/amd64
-        run: GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.defaultImage=ghcr.io/ghostconductor/ghost:latest" -o ghostconductor-darwin-amd64 .
-
-      - name: Create tarballs
-        run: |
-          tar -czf ghostconductor-${{ github.ref_name }}-darwin-arm64.tar.gz ghostconductor-darwin-arm64
-          tar -czf ghostconductor-${{ github.ref_name }}-darwin-amd64.tar.gz ghostconductor-darwin-amd64
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - uses: actions/setup-node@v4
         with:
-          files: |
-            ghostconductor-${{ github.ref_name }}-darwin-arm64.tar.gz
-            ghostconductor-${{ github.ref_name }}-darwin-amd64.tar.gz
+          node-version: '20'
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

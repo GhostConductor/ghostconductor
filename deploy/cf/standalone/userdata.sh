@@ -44,6 +44,12 @@ tar -xzf /tmp/ghostconductor.tar.gz -C /opt/ghostconductor/bin
 chmod +x /opt/ghostconductor/bin/ghostconductor
 rm -f /tmp/ghostconductor.tar.gz
 
+# Download ghostconductor configs
+curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/network-policy.json \
+  -o /opt/ghostconductor/etc/network-policy.json
+curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/container-policy.json \
+  -o /opt/ghostconductor/etc/container-policy.json
+
 # Download prompts and context
 curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/prompts.tar.gz \
   -o /tmp/prompts.tar.gz

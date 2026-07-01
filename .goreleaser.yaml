@@ -54,6 +54,7 @@ release:
   extra_files:
     - glob: config/ghostconductor.env
     - glob: config/network-policy.json
+    - glob: config/container-policy.json
     - glob: config/prompts.tar.gz
     - glob: config/context.tar.gz
     - glob: deploy/cf/standalone/server.yaml
@@ -81,6 +82,8 @@ homebrew_casks:
           system_command "/usr/bin/tar", args: ["-xzf", "/tmp/prompts.tar.gz", "-C", "#{Dir.home}/ghostconductor/etc"]
           system_command "/usr/bin/tar", args: ["-xzf", "/tmp/context.tar.gz", "-C", "#{Dir.home}/ghostconductor/etc"]
           system_command "/usr/bin/touch", args: ["#{Dir.home}/ghostconductor/etc/CONTEXT.md"]
+          system_command "/usr/bin/curl", args: ["-sL", "-o", "#{Dir.home}/ghostconductor/etc/network-policy.json", "https://github.com/GhostConductor/ghostconductor/releases/latest/download/network-policy.json"]
+          system_command "/usr/bin/curl", args: ["-sL", "-o", "#{Dir.home}/ghostconductor/etc/container-policy.json", "https://github.com/GhostConductor/ghostconductor/releases/latest/download/container-policy.json"]
           system_command "/bin/rm", args: ["-f", "/tmp/prompts.tar.gz", "/tmp/context.tar.gz"]
         uninstall: |
           system_command "/bin/rm", args: ["-rf", "#{Dir.home}/ghostconductor"]

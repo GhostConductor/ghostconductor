@@ -73,7 +73,8 @@ homebrew_casks:
     hooks:
       post:
         install: |
-          system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/etc"]
+          system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/etc/prompts/intent"]
+          system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/etc/context"]
           system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/jobs"]
           system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/repos"]
           system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/shared"]

@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -21,15 +20,9 @@ import (
 )
 
 const defaultPort = "7777"
-const defaultBasePath = "~/ghostconductor"
 const configDir = ".ghostconductor"
-const configFile = "config.json"
 
 var defaultImage = "ghcr.io/ghostconductor/ghost:dev"
-
-type DesktopConfig struct {
-	BasePath string `json:"base_path"`
-}
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "uninstall" {
@@ -100,13 +93,25 @@ func precheck(cfg Config) error {
 	if len(missing) > 0 {
 		fmt.Fprintf(os.Stderr, "GhostConductor: required directories are missing:\n")
 		for _, dir := range missing {
-			fmt.Fprintf(os.Stderr, "  %s\n", dir)
+			fmt.Fprintf(os.Stderr, "  missing: %s\n", dir)
 		}
-		fmt.Fprintf(os.Stderr, "\nRun 'brew reinstall ghostconductor' to repair your installation.\n")
 		return fmt.Errorf("preflight check failed")
 	}
 
 	return nil
+}
+
+func defaultBasePath() string {
+	if v := os.Getenv("GC_BASE_PATH"); v != "" {
+		return v
+	}
+	home, _ := os.UserHomeDir()
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(home, "ghostconductor")
+	default:
+		return "/opt/ghostconductor"
+	}
 }
 
 func connectDocker() (*client.Client, error) {
@@ -149,7 +154,7 @@ func connectDocker() (*client.Client, error) {
 }
 
 func loadConfig(portFlag *string) Config {
-	desktopCfg := loadOrCreateDesktopConfig()
+	base := defaultBasePath()
 
 	port := defaultPort
 	if portFlag != nil && *portFlag != "" {
@@ -157,8 +162,6 @@ func loadConfig(portFlag *string) Config {
 	} else if v := os.Getenv("GC_PORT"); v != "" {
 		port = v
 	}
-
-	base := desktopCfg.BasePath
 
 	return Config{
 		Port:            port,
@@ -174,52 +177,7 @@ func loadConfig(portFlag *string) Config {
 		AnthropicAPIKey: os.Getenv("GC_ANTHROPIC_API_KEY"),
 		OpenAIAPIKey:    os.Getenv("GC_OPENAI_API_KEY"),
 		GoogleAPIKey:    os.Getenv("GC_GOOGLE_API_KEY"),
-		ConfigFilePath:  desktopConfigPath(),
 	}
-}
-
-func desktopConfigPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, configDir, configFile)
-}
-
-func loadOrCreateDesktopConfig() DesktopConfig {
-	path := desktopConfigPath()
-
-	if data, err := os.ReadFile(path); err == nil {
-		var cfg DesktopConfig
-		if err := json.Unmarshal(data, &cfg); err == nil && cfg.BasePath != "" {
-			return cfg
-		}
-	}
-
-	home, _ := os.UserHomeDir()
-	defaultBase := filepath.Join(home, "ghostconductor")
-
-	fmt.Printf("Welcome to GhostConductor!\n\n")
-	fmt.Printf("Where should GhostConductor store its data? [%s]: ", defaultBase)
-
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-
-	basePath := defaultBase
-	if input != "" {
-		basePath = input
-	}
-
-	if strings.HasPrefix(basePath, "~/") {
-		basePath = filepath.Join(home, basePath[2:])
-	}
-
-	cfg := DesktopConfig{BasePath: basePath}
-
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err == nil {
-		data, _ := json.MarshalIndent(cfg, "", "  ")
-		os.WriteFile(path, data, 0644)
-	}
-
-	return cfg
 }
 
 func openBrowser(url string) {
@@ -276,20 +234,11 @@ func pullGhostImage(docker *client.Client, image string) {
 
 func runUninstall() {
 	home, _ := os.UserHomeDir()
-	configPath := filepath.Join(home, configDir, configFile)
-
-	basePath := filepath.Join(home, "ghostconductor")
-	if data, err := os.ReadFile(configPath); err == nil {
-		var cfg DesktopConfig
-		if err := json.Unmarshal(data, &cfg); err == nil && cfg.BasePath != "" {
-			basePath = cfg.BasePath
-		}
-	}
+	basePath := defaultBasePath()
 
 	fmt.Println("Ghost Conductor Uninstall")
 	fmt.Println("─────────────────────────")
 	fmt.Printf("This will remove:\n")
-	fmt.Printf("  %s\n", filepath.Join(home, configDir))
 	fmt.Printf("  %s\n", basePath)
 	fmt.Printf("  Docker image: ghcr.io/ghostconductor/ghost:latest\n")
 	fmt.Printf("  Docker image: ghcr.io/ghostconductor/ghost:dev\n")
@@ -303,12 +252,6 @@ func runUninstall() {
 	if input != "yes" {
 		fmt.Println("Uninstall cancelled.")
 		return
-	}
-
-	if err := os.RemoveAll(filepath.Join(home, configDir)); err != nil {
-		fmt.Printf("Warning: failed to remove config dir: %v\n", err)
-	} else {
-		fmt.Printf("Removed: %s\n", filepath.Join(home, configDir))
 	}
 
 	if err := os.RemoveAll(basePath); err != nil {
@@ -350,4 +293,5 @@ func runUninstall() {
 
 	fmt.Println("\nDone. If installed via Homebrew, also run:")
 	fmt.Println("  brew uninstall ghostconductor")
+	_ = home
 }

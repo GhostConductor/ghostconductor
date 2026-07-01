@@ -22,7 +22,6 @@ type Config struct {
 	AnthropicAPIKey string
 	OpenAIAPIKey    string
 	GoogleAPIKey    string
-	ConfigFilePath  string
 }
 
 type Repo struct {

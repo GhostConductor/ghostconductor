@@ -1,22 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 )
-
-var secretKeys = map[string]bool{
-	"GC_ANTHROPIC_API_KEY": true,
-	"GC_OPENAI_API_KEY":    true,
-	"GC_GOOGLE_API_KEY":    true,
-}
 
 type ConfigUpdateRequest struct {
 	AnthropicAPIKey string `json:"anthropic_api_key,omitempty"`
@@ -101,50 +92,6 @@ func (m *Manager) DeleteConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown key: "+req.Key, http.StatusBadRequest)
 		return
 	}
-}
-
-func updateEnvFile(path string, updates map[string]string) error {
-	existing := map[string]string{}
-	order := []string{}
-
-	if data, err := os.ReadFile(path); err == nil {
-		scanner := bufio.NewScanner(strings.NewReader(string(data)))
-		for scanner.Scan() {
-			line := scanner.Text()
-			if line == "" || strings.HasPrefix(line, "#") {
-				order = append(order, line)
-				continue
-			}
-			parts := strings.SplitN(line, "=", 2)
-			if len(parts) == 2 {
-				existing[parts[0]] = parts[1]
-				order = append(order, parts[0])
-			}
-		}
-	}
-
-	for k, v := range updates {
-		if _, found := existing[k]; !found {
-			order = append(order, k)
-		}
-		existing[k] = v
-	}
-
-	var b strings.Builder
-	seen := map[string]bool{}
-	for _, key := range order {
-		if key == "" || strings.HasPrefix(key, "#") {
-			b.WriteString(key + "\n")
-			continue
-		}
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		b.WriteString(fmt.Sprintf("%s=%s\n", key, existing[key]))
-	}
-
-	return os.WriteFile(path, []byte(b.String()), 0600)
 }
 
 func (m *Manager) ClearJobs(w http.ResponseWriter, r *http.Request) {

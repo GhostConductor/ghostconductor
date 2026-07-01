@@ -4,18 +4,18 @@ cask "ghostconductor" do
 
   on_macos do
     on_intel do
-      sha256 "e4f61f567593ddca0405e275dccf3e099e03f4b6f1de43e372d8be6597433f28"
+      sha256 "043390f2e262d7ffac029e79a97cc0c0c74181b65bdff6fc3d5cb953886531dc"
       url "https://github.com/GhostConductor/ghostconductor/releases/download/v0.1.0/ghostconductor-#{version}-darwin-amd64.tar.gz"
     end
     on_arm do
-      sha256 "59ec38604e897d299adc4179067a9be553190cdc7c7f6a3ccf0411318668e121"
+      sha256 "032e3f050683199f22c1fa5d7f2284bfaf61bf6ec3da1455ef6e4ef04058106e"
       url "https://github.com/GhostConductor/ghostconductor/releases/download/v0.1.0/ghostconductor-#{version}-darwin-arm64.tar.gz"
     end
   end
 
   on_linux do
     on_intel do
-      sha256 "59985d4b8bf7a07ea73ed925d14de6572c4424e2fabd774bcd42bcac903cdca8"
+      sha256 "e025e1e81c3ef02104a9b4f2e1db64f7266fc636130f2d3666965bbaecc44206"
       url "https://github.com/GhostConductor/ghostconductor/releases/download/v0.1.0/ghostconductor-#{version}-linux-amd64.tar.gz"
     end
   end

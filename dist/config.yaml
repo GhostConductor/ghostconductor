@@ -6,10 +6,13 @@ release:
     name: ghostconductor
   name_template: '{{.Tag}}'
   extra_files:
-    - glob: prompts.tar.gz
-    - glob: context.tar.gz
-    - glob: deploy/cf/standalone/standalone.yaml
+    - glob: config/ghostconductor.env
+    - glob: config/network-policy.json
+    - glob: config/prompts.tar.gz
+    - glob: config/context.tar.gz
+    - glob: deploy/cf/standalone/server.yaml
     - glob: deploy/cf/standalone/userdata.sh
+    - glob: deploy/cf/standalone/cloudwatch-config.json
 homebrew_casks:
   - name: ghostconductor
     repository:
@@ -44,9 +47,9 @@ homebrew_casks:
 builds:
   - id: ghostconductor
     targets:
+      - darwin_amd64_v1
       - darwin_arm64_v8.0
       - linux_amd64_v1
-      - darwin_amd64_v1
     dir: .
     main: ./cmd/ghostconductor
     binary: ghostconductor
@@ -75,9 +78,9 @@ nfpms:
   - file_name_template: '{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
     package_name: ghostconductor
     contents:
-      - src: prompts.tar.gz
+      - src: config/prompts.tar.gz
         dst: /tmp/prompts.tar.gz
-      - src: context.tar.gz
+      - src: config/context.tar.gz
         dst: /tmp/context.tar.gz
     scripts:
       postinstall: deploy/scripts/postinstall.sh
@@ -120,8 +123,9 @@ before:
     - npm run build --prefix ui
     - mkdir -p cmd/ghostconductor/ui/dist
     - cp -r ui/dist/ cmd/ghostconductor/ui/dist/
-    - tar -czf prompts.tar.gz prompts/
-    - tar -czf context.tar.gz context/
+    - mkdir -p config
+    - tar -czf config/prompts.tar.gz prompts/
+    - tar -czf config/context.tar.gz context/
 source:
   name_template: '{{ .ProjectName }}-{{ .Version }}'
   format: tar.gz

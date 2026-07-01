@@ -1,0 +1,10 @@
+{
+  "allowed_outbound": [
+    "api.anthropic.com",
+    "api.openai.com",
+    "generativelanguage.googleapis.com",
+    "github.com",
+    "registry-1.docker.io",
+    "ghcr.io"
+  ]
+}

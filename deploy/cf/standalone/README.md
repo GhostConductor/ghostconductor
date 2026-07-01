@@ -1,0 +1,108 @@
+# GhostConductor — Standalone Deployment
+
+A single EC2 instance running GhostConductor. One server, one project. Ideal for personal use or small teams.
+
+## What It Creates
+
+- EC2 instance running Ubuntu 24.04 (latest, via SSM parameter)
+- GhostConductor binary installed and running as a systemd service
+- Docker installed and running
+- CloudWatch agent configured for logs
+
+## Prerequisites
+
+Before deploying you need:
+
+- An AWS account with EC2 permissions
+- A VPC with a public subnet
+- An EC2 key pair
+- An IAM instance profile with the following permissions:
+  - `AmazonSSMManagedInstanceCore`
+  - `CloudWatchAgentServerPolicy`
+- A security group (see recommendations below)
+
+## Security Group Recommendations
+
+GhostConductor runs on port `7777`. **Never open this port to `0.0.0.0/0`.**
+
+Recommended inbound rules:
+
+| Port | Protocol | Source | Purpose |
+|------|----------|--------|---------|
+| 7777 | TCP | Your IP only | GhostConductor UI |
+| 443 | TCP | Your IP only | HTTPS |
+| 80 | TCP | Your IP only | HTTP |
+
+Recommended outbound rules:
+
+| Port | Protocol | Destination | Purpose |
+|------|----------|-------------|---------|
+| 443 | TCP | 0.0.0.0/0 | GitHub, Docker Hub, AI provider APIs, package repos |
+| 53 | UDP | 0.0.0.0/0 | DNS |
+
+## IAM Instance Profile
+
+Your instance profile needs the following permissions:
+
+- `AmazonSSMManagedInstanceCore` — SSM access
+- `CloudWatchAgentServerPolicy` — CloudWatch logs
+
+## Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `InstanceType` | EC2 instance type | `t3a.small` |
+| `KeyName` | EC2 key pair name | — |
+| `IamInstanceProfile` | IAM instance profile name | — |
+| `SubnetId` | Public subnet ID | — |
+| `SecurityGroupId` | Security group ID | — |
+
+## Deploy
+
+```bash
+aws cloudformation deploy \
+  --template-file host.yaml \
+  --stack-name gc-server \
+  --parameter-overrides \
+    KeyName=your-key-pair \
+    IamInstanceProfile=your-instance-profile \
+    SubnetId=subnet-xxxxxxxx \
+    SecurityGroupId=sg-xxxxxxxx \
+  --region us-west-2
+```
+
+## Accessing GhostConductor
+
+Once deployed, find your instance's public IP in the CloudFormation outputs:
+
+http://<public-ip>:7777
+
+## Logs
+
+CloudWatch log groups:
+- `/ec2/ghostconductor/cloud-init` — userdata bootstrap logs
+- `/ec2/ghostconductor/ghostconductor` — application logs
+
+## Configuration
+
+Edit `/etc/systemd/system/ghostconductor.env` to configure:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GC_BASE_PATH` | `/opt/ghostconductor` | Base data directory |
+| `GC_PORT` | `7777` | HTTP port |
+| `GC_ANTHROPIC_API_KEY` | — | Anthropic API key |
+| `GC_OPENAI_API_KEY` | — | OpenAI API key |
+| `GC_GOOGLE_API_KEY` | — | Google API key |
+
+After editing, restart the service:
+
+```bash
+sudo systemctl restart ghostconductor
+```
+
+## Customization
+
+- **Prompts** — edit or add files in `/opt/ghostconductor/etc/prompts/`
+- **Context** — edit `/opt/ghostconductor/etc/CONTEXT.md`
+- **Fork** — fork the [GhostConductor repo](https://github.com/GhostConductor/ghostconductor) to customize prompts and ship your own release

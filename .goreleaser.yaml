@@ -8,8 +8,9 @@ before:
     - npm run build --prefix ui
     - mkdir -p cmd/ghostconductor/ui/dist
     - cp -r ui/dist/ cmd/ghostconductor/ui/dist/
-    - tar -czf prompts.tar.gz prompts/
-    - tar -czf context.tar.gz context/
+    - mkdir -p config
+    - tar -czf config/prompts.tar.gz prompts/
+    - tar -czf config/context.tar.gz context/
 
 builds:
   - main: ./cmd/ghostconductor
@@ -39,9 +40,9 @@ nfpms:
       - deb
     bindir: /usr/local/bin
     contents:
-      - src: prompts.tar.gz
+      - src: config/prompts.tar.gz
         dst: /tmp/prompts.tar.gz
-      - src: context.tar.gz
+      - src: config/context.tar.gz
         dst: /tmp/context.tar.gz
     scripts:
       postinstall: deploy/scripts/postinstall.sh
@@ -51,10 +52,13 @@ release:
     owner: GhostConductor
     name: ghostconductor
   extra_files:
-    - glob: prompts.tar.gz
-    - glob: context.tar.gz
-    - glob: deploy/cf/standalone/standalone.yaml
+    - glob: config/ghostconductor.env
+    - glob: config/network-policy.json
+    - glob: config/prompts.tar.gz
+    - glob: config/context.tar.gz
+    - glob: deploy/cf/standalone/server.yaml
     - glob: deploy/cf/standalone/userdata.sh
+    - glob: deploy/cf/standalone/cloudwatch-config.json
 
 homebrew_casks:
   - name: ghostconductor

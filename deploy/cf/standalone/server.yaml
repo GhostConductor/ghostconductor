@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'GhostConductor - Standalone server instance'
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3a.small
+  KeyName:
+    Type: String
+  IamInstanceProfile:
+    Type: String
+  SubnetId:
+    Type: String
+  SecurityGroupId:
+    Type: String
+
+Resources:
+  HostInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp2/ami-id}}'
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      IamInstanceProfile: !Ref IamInstanceProfile
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash -ex
+          curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/userdata.sh -o /tmp/userdata.sh
+          chmod +x /tmp/userdata.sh
+          /tmp/userdata.sh
+      Tags:
+        - Key: Name
+          Value: gc-server
+        - Key: Project
+          Value: GhostConductor
+
+Outputs:
+  InstanceId:
+    Description: Host instance ID
+    Value: !Ref HostInstance
+  PrivateIP:
+    Description: Private IP address
+    Value: !GetAtt HostInstance.PrivateIp
+  PublicIP:
+    Description: Public IP address
+    Value: !GetAtt HostInstance.PublicIp

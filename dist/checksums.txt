@@ -1,4 +1,0 @@
-6af9de5329278c5cd5295c49922dfa052b44af933e03c32782f14b72f363c83f  ghostconductor-v0.1.0-dev-darwin-amd64.tar.gz
-f4688de027bd264b4f36b77295e38052bdee1c04358b4384866f975e01995d2e  ghostconductor-v0.1.0-dev-darwin-arm64.tar.gz
-fba5d328350e00d3489732a5a6eb60e7ee225c466f0140d6167b04814b60b0e6  ghostconductor-v0.1.0-dev-linux-amd64.tar.gz
-42aef146b26d9a9c0be9c5e6288cc1cdd97972ea5c8492fe1a8484be9b36d059  ghostconductor_v0.1.0-dev_linux_amd64.deb

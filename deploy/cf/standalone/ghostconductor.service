@@ -1,0 +1,17 @@
+[Unit]
+Description=GhostConductor
+After=network.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=ubuntu
+EnvironmentFile=/etc/systemd/system/ghostconductor.env
+ExecStart=/opt/ghostconductor/bin/ghostconductor
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/ghostconductor.log
+StandardError=append:/var/log/ghostconductor.log
+
+[Install]
+WantedBy=multi-user.target

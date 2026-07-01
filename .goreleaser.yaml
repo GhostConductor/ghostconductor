@@ -59,6 +59,7 @@ release:
     - glob: deploy/cf/standalone/server.yaml
     - glob: deploy/cf/standalone/userdata.sh
     - glob: deploy/cf/standalone/cloudwatch-config.json
+    - glob: deploy/cf/standalone/ghostconductor.service
 
 homebrew_casks:
   - name: ghostconductor

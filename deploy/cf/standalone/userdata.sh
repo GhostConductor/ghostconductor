@@ -44,12 +44,6 @@ tar -xzf /tmp/ghostconductor.tar.gz -C /opt/ghostconductor/bin
 chmod +x /opt/ghostconductor/bin/ghostconductor
 rm -f /tmp/ghostconductor.tar.gz
 
-# Download ghostconductor configs
-curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/network-policy.json \
-  -o /opt/ghostconductor/etc/network-policy.json
-curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/container-policy.json \
-  -o /opt/ghostconductor/etc/container-policy.json
-
 # Download prompts and context
 curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/prompts.tar.gz \
   -o /tmp/prompts.tar.gz
@@ -59,6 +53,12 @@ tar -xzf /tmp/prompts.tar.gz -C /opt/ghostconductor/etc
 tar -xzf /tmp/context.tar.gz -C /opt/ghostconductor/etc
 touch /opt/ghostconductor/etc/CONTEXT.md
 rm -f /tmp/prompts.tar.gz /tmp/context.tar.gz
+
+# Download policy files
+curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/network-policy.json \
+  -o /opt/ghostconductor/etc/network-policy.json
+curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/container-policy.json \
+  -o /opt/ghostconductor/etc/container-policy.json
 
 # Download systemd service files
 curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/ghostconductor.env \

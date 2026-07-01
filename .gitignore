@@ -6,7 +6,6 @@ gc-desktop
 *.test
 *.out
 vendor/
-dist/
 
 # UI
 ui/dist/

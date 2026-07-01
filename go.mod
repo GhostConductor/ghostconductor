@@ -1,4 +1,4 @@
-module github.com/GhostConductor/gc-desktop
+module github.com/GhostConductor/ghostconductor
 
 go 1.26.2
 

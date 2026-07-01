@@ -25,14 +25,9 @@ func writeContextFile(dataPath, contextPath string) error {
 	content, err := os.ReadFile(contextPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// No context file — fall back to embedded TEMPLATE.md
-			content, err = contextFiles.ReadFile("context/TEMPLATE.md")
-			if err != nil {
-				return fmt.Errorf("failed to read context template: %w", err)
-			}
-		} else {
-			return fmt.Errorf("failed to read context file from disk (%s): %w", contextPath, err)
+			return os.WriteFile(filepath.Join(dataPath, "CONTEXT.md"), []byte(""), 0644)
 		}
+		return fmt.Errorf("failed to read context file from disk (%s): %w", contextPath, err)
 	}
 	return os.WriteFile(filepath.Join(dataPath, "CONTEXT.md"), content, 0644)
 }

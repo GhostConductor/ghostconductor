@@ -21,15 +21,9 @@ import (
 )
 
 const defaultPort = "7777"
-const defaultBasePath = "~/ghostconductor"
 const configDir = ".ghostconductor"
-const configFile = "config.json"
 
 var defaultImage = "ghcr.io/ghostconductor/ghost:dev"
-
-type DesktopConfig struct {
-	BasePath string `json:"base_path"`
-}
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "uninstall" {
@@ -42,6 +36,10 @@ func main() {
 
 	cfg := loadConfig(portFlag)
 
+	if err := precheck(cfg); err != nil {
+		os.Exit(1)
+	}
+
 	docker, err := connectDocker()
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -50,12 +48,30 @@ func main() {
 
 	pullGhostImage(docker, defaultImage)
 
+	networkPolicy, err := loadNetworkPolicy(cfg.BasePath)
+	if err != nil {
+		log.Fatalf("Failed to load network policy: %v", err)
+	}
+
+	containerPolicy, err := loadContainerPolicy(cfg.BasePath)
+	if err != nil {
+		log.Fatalf("Failed to load container policy: %v", err)
+	}
+
+	networkID, err := ensureGCNetwork(docker)
+	if err != nil {
+		log.Fatalf("Failed to create GhostConductor network: %v", err)
+	}
+
 	mgr := &Manager{
-		docker:     docker,
-		config:     cfg,
-		jobs:       make(map[string]*JobStatus),
-		timers:     make(map[string]context.CancelFunc),
-		repoTokens: make(map[string]string),
+		docker:          docker,
+		config:          cfg,
+		jobs:            make(map[string]*JobStatus),
+		timers:          make(map[string]context.CancelFunc),
+		repoTokens:      make(map[string]string),
+		networkPolicy:   networkPolicy,
+		containerPolicy: containerPolicy,
+		networkID:       networkID,
 	}
 
 	router := mux.NewRouter()
@@ -75,6 +91,45 @@ func main() {
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.Port), router); err != nil {
 		log.Fatalf("Server failed: %v", err)
+	}
+}
+
+func precheck(cfg Config) error {
+	dirs := []string{
+		cfg.JobsBasePath,
+		cfg.ReposBasePath,
+		cfg.PromptsPath,
+		filepath.Dir(cfg.ContextPath),
+	}
+
+	var missing []string
+	for _, dir := range dirs {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			missing = append(missing, dir)
+		}
+	}
+
+	if len(missing) > 0 {
+		fmt.Fprintf(os.Stderr, "GhostConductor: required directories are missing:\n")
+		for _, dir := range missing {
+			fmt.Fprintf(os.Stderr, "  missing: %s\n", dir)
+		}
+		return fmt.Errorf("preflight check failed")
+	}
+
+	return nil
+}
+
+func defaultBasePath() string {
+	if v := os.Getenv("GC_BASE_PATH"); v != "" {
+		return v
+	}
+	home, _ := os.UserHomeDir()
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(home, "ghostconductor")
+	default:
+		return "/opt/ghostconductor"
 	}
 }
 
@@ -118,7 +173,7 @@ func connectDocker() (*client.Client, error) {
 }
 
 func loadConfig(portFlag *string) Config {
-	desktopCfg := loadOrCreateDesktopConfig()
+	base := defaultBasePath()
 
 	port := defaultPort
 	if portFlag != nil && *portFlag != "" {
@@ -126,8 +181,6 @@ func loadConfig(portFlag *string) Config {
 	} else if v := os.Getenv("GC_PORT"); v != "" {
 		port = v
 	}
-
-	base := desktopCfg.BasePath
 
 	return Config{
 		Port:            port,
@@ -143,70 +196,81 @@ func loadConfig(portFlag *string) Config {
 		AnthropicAPIKey: os.Getenv("GC_ANTHROPIC_API_KEY"),
 		OpenAIAPIKey:    os.Getenv("GC_OPENAI_API_KEY"),
 		GoogleAPIKey:    os.Getenv("GC_GOOGLE_API_KEY"),
-		ConfigFilePath:  desktopConfigPath(),
 	}
 }
 
-func desktopConfigPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, configDir, configFile)
+func loadNetworkPolicy(basePath string) (NetworkPolicy, error) {
+	path := filepath.Join(basePath, "etc", "network-policy.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Warning: network-policy.json not found, using empty policy")
+			return NetworkPolicy{}, nil
+		}
+		return NetworkPolicy{}, fmt.Errorf("failed to read network policy: %w", err)
+	}
+	var policy NetworkPolicy
+	if err := json.Unmarshal(data, &policy); err != nil {
+		return NetworkPolicy{}, fmt.Errorf("failed to parse network policy: %w", err)
+	}
+	log.Printf("Loaded network policy: %d allowed outbound domains", len(policy.AllowedOutbound))
+	return policy, nil
 }
 
-func loadOrCreateDesktopConfig() DesktopConfig {
-	path := desktopConfigPath()
+func loadContainerPolicy(basePath string) (ContainerPolicy, error) {
+	path := filepath.Join(basePath, "etc", "container-policy.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Warning: container-policy.json not found, using defaults")
+			return ContainerPolicy{
+				MemoryLimitMB:   2048,
+				CPULimit:        1.0,
+				NoNewPrivileges: true,
+				PidsLimit:       256,
+			}, nil
+		}
+		return ContainerPolicy{}, fmt.Errorf("failed to read container policy: %w", err)
+	}
+	var policy ContainerPolicy
+	if err := json.Unmarshal(data, &policy); err != nil {
+		return ContainerPolicy{}, fmt.Errorf("failed to parse container policy: %w", err)
+	}
+	log.Printf("Loaded container policy: %dMB memory, %.1f CPU", policy.MemoryLimitMB, policy.CPULimit)
+	return policy, nil
+}
 
-	if data, err := os.ReadFile(path); err == nil {
-		var cfg DesktopConfig
-		if err := json.Unmarshal(data, &cfg); err == nil && cfg.BasePath != "" {
-			return cfg
+func ensureGCNetwork(docker *client.Client) (string, error) {
+	ctx := context.Background()
+
+	result, err := docker.NetworkList(ctx, client.NetworkListOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to list networks: %w", err)
+	}
+
+	for _, n := range result.Items {
+		if n.Name == "ghostconductor" {
+			log.Printf("Using existing ghostconductor network: %s", n.ID)
+			return n.ID, nil
 		}
 	}
 
-	// First run — prompt for base path
-	home, _ := os.UserHomeDir()
-	defaultBase := filepath.Join(home, "ghostconductor")
-
-	fmt.Printf("Welcome to GhostConductor!\n\n")
-	fmt.Printf("Where should GhostConductor store its data? [%s]: ", defaultBase)
-
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-
-	basePath := defaultBase
-	if input != "" {
-		basePath = input
+	resp, err := docker.NetworkCreate(ctx, "ghostconductor", client.NetworkCreateOptions{
+		Driver: "bridge",
+		Options: map[string]string{
+			"com.docker.network.bridge.enable_icc":           "false",
+			"com.docker.network.bridge.enable_ip_masquerade": "true",
+		},
+		Labels: map[string]string{
+			"project": "ghostconductor",
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create network: %w", err)
 	}
 
-	// Expand ~ if present
-	if strings.HasPrefix(basePath, "~/") {
-		basePath = filepath.Join(home, basePath[2:])
-	}
-
-	cfg := DesktopConfig{BasePath: basePath}
-
-	// Write config
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err == nil {
-		data, _ := json.MarshalIndent(cfg, "", "  ")
-		os.WriteFile(path, data, 0644)
-	}
-
-	// Create base directory structure
-	for _, dir := range []string{
-		filepath.Join(basePath, "jobs"),
-		filepath.Join(basePath, "repos"),
-		filepath.Join(basePath, "etc", "prompts", "intent"),
-		filepath.Join(basePath, "shared"),
-	} {
-		os.MkdirAll(dir, 0755)
-	}
-
-	// Copy Default Prompts
-	if err := copyPromptsToBase(basePath); err != nil {
-		log.Printf("Warning: failed to copy prompts: %v", err)
-	}
-
-	return cfg
+	log.Printf("Created ghostconductor network: %s", resp.ID)
+	return resp.ID, nil
 }
 
 func openBrowser(url string) {
@@ -263,21 +327,11 @@ func pullGhostImage(docker *client.Client, image string) {
 
 func runUninstall() {
 	home, _ := os.UserHomeDir()
-	configPath := filepath.Join(home, configDir, configFile)
-
-	// Read base path from config
-	basePath := filepath.Join(home, "ghostconductor")
-	if data, err := os.ReadFile(configPath); err == nil {
-		var cfg DesktopConfig
-		if err := json.Unmarshal(data, &cfg); err == nil && cfg.BasePath != "" {
-			basePath = cfg.BasePath
-		}
-	}
+	basePath := defaultBasePath()
 
 	fmt.Println("Ghost Conductor Uninstall")
 	fmt.Println("─────────────────────────")
 	fmt.Printf("This will remove:\n")
-	fmt.Printf("  %s\n", filepath.Join(home, configDir))
 	fmt.Printf("  %s\n", basePath)
 	fmt.Printf("  Docker image: ghcr.io/ghostconductor/ghost:latest\n")
 	fmt.Printf("  Docker image: ghcr.io/ghostconductor/ghost:dev\n")
@@ -293,21 +347,12 @@ func runUninstall() {
 		return
 	}
 
-	// Remove config dir
-	if err := os.RemoveAll(filepath.Join(home, configDir)); err != nil {
-		fmt.Printf("Warning: failed to remove config dir: %v\n", err)
-	} else {
-		fmt.Printf("Removed: %s\n", filepath.Join(home, configDir))
-	}
-
-	// Remove base path
 	if err := os.RemoveAll(basePath); err != nil {
 		fmt.Printf("Warning: failed to remove data dir: %v\n", err)
 	} else {
 		fmt.Printf("Removed: %s\n", basePath)
 	}
 
-	// Connect to Docker and clean up containers and images
 	docker, err := connectDocker()
 	if err != nil {
 		fmt.Printf("Warning: could not connect to Docker — skipping container and image removal\n")
@@ -315,7 +360,6 @@ func runUninstall() {
 		defer docker.Close()
 		ctx := context.Background()
 
-		// Remove all ghost containers
 		containers, err := docker.ContainerList(ctx, client.ContainerListOptions{All: true})
 		if err == nil {
 			for _, c := range containers.Items {
@@ -328,7 +372,6 @@ func runUninstall() {
 			}
 		}
 
-		// Remove Docker images
 		for _, image := range []string{
 			"ghcr.io/ghostconductor/ghost:latest",
 			"ghcr.io/ghostconductor/ghost:dev",
@@ -339,8 +382,19 @@ func runUninstall() {
 				fmt.Printf("Removed: %s\n", image)
 			}
 		}
+
+		result, err := docker.NetworkList(ctx, client.NetworkListOptions{})
+		if err == nil {
+			for _, n := range result.Items {
+				if n.Name == "ghostconductor" {
+					docker.NetworkRemove(ctx, n.ID, client.NetworkRemoveOptions{})
+					fmt.Printf("Removed network: ghostconductor\n")
+				}
+			}
+		}
 	}
 
 	fmt.Println("\nDone. If installed via Homebrew, also run:")
 	fmt.Println("  brew uninstall ghostconductor")
+	_ = home
 }

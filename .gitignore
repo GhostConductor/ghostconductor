@@ -13,6 +13,8 @@ ui/node_modules/
 
 # Config
 ~/.gc-desktop/
+config/*.tar.gz
 
 # OS
 .DS_Store
+dist/

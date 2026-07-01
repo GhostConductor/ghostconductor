@@ -8,9 +8,8 @@ before:
     - npm run build --prefix ui
     - mkdir -p cmd/ghostconductor/ui/dist
     - cp -r ui/dist/ cmd/ghostconductor/ui/dist/
-    - mkdir -p config
-    - tar -czf config/prompts.tar.gz prompts/
-    - tar -czf config/context.tar.gz context/
+    - tar -czf config/prompts.tar.gz config/prompts/
+    - tar -czf config/context.tar.gz config/context/
 
 builds:
   - main: ./cmd/ghostconductor
@@ -73,6 +72,7 @@ homebrew_casks:
     hooks:
       post:
         install: |
+          system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/ghostconductor"]
           system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/etc/prompts/intent"]
           system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/etc/context"]
           system_command "/bin/mkdir", args: ["-p", "#{Dir.home}/ghostconductor/jobs"]

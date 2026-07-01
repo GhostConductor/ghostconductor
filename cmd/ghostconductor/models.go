@@ -24,6 +24,19 @@ type Config struct {
 	GoogleAPIKey    string
 }
 
+type NetworkPolicy struct {
+	AllowedOutbound []string `json:"allowed_outbound"`
+}
+
+type ContainerPolicy struct {
+	MemoryLimitMB    int      `json:"memory_limit_mb"`
+	CPULimit         float64  `json:"cpu_limit"`
+	ReadonlyRootfs   bool     `json:"readonly_rootfs"`
+	NoNewPrivileges  bool     `json:"no_new_privileges"`
+	DropCapabilities []string `json:"drop_capabilities"`
+	PidsLimit        int64    `json:"pids_limit"`
+}
+
 type Repo struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -39,12 +52,12 @@ type RepoStatus struct {
 }
 
 type JobRequest struct {
-	Intent  string   `json:"intent"`
-	Task    string   `json:"task"`
-	Image   string   `json:"image"`
-	Model   string   `json:"model"`
-	Provider string  `json:"provider"`
-	RepoIDs []string `json:"repo_ids"`
+	Intent   string   `json:"intent"`
+	Task     string   `json:"task"`
+	Image    string   `json:"image"`
+	Model    string   `json:"model"`
+	Provider string   `json:"provider"`
+	RepoIDs  []string `json:"repo_ids"`
 }
 
 type JobResponse struct {
@@ -86,10 +99,13 @@ type UsageEntry struct {
 }
 
 type Manager struct {
-	docker     *client.Client
-	config     Config
-	mu         sync.RWMutex
-	jobs       map[string]*JobStatus
-	timers     map[string]context.CancelFunc
-	repoTokens map[string]string
+	docker          *client.Client
+	config          Config
+	mu              sync.RWMutex
+	jobs            map[string]*JobStatus
+	timers          map[string]context.CancelFunc
+	repoTokens      map[string]string
+	networkPolicy   NetworkPolicy
+	containerPolicy ContainerPolicy
+	networkID       string
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
 )
 
@@ -16,6 +17,18 @@ func (m *Manager) launchContainer(jobID, gcRepos, intent, image, model, provider
 	ctx := context.Background()
 
 	stopTimeout := m.config.GracePeriodSecs
+
+	// Build capability drop list
+	var capDrop []string
+	for _, cap := range m.containerPolicy.DropCapabilities {
+		capDrop = append(capDrop, cap)
+	}
+
+	// Memory limit in bytes
+	memoryLimit := int64(m.containerPolicy.MemoryLimitMB) * 1024 * 1024
+
+	// CPU limit (NanoCPUs = CPULimit * 1e9)
+	nanoCPUs := int64(m.containerPolicy.CPULimit * 1e9)
 
 	resp, err := m.docker.ContainerCreate(ctx, client.ContainerCreateOptions{
 		Name: fmt.Sprintf("ghost-%s", jobID),
@@ -43,6 +56,22 @@ func (m *Manager) launchContainer(jobID, gcRepos, intent, image, model, provider
 				filepath.Join(jobPath, "log") + ":/log",
 				filepath.Join(m.config.BasePath, "shared") + ":/shared",
 			},
+			Resources: container.Resources{
+				Memory:    memoryLimit,
+				NanoCPUs:  nanoCPUs,
+				PidsLimit: &m.containerPolicy.PidsLimit,
+			},
+			CapDrop:        capDrop,
+			ReadonlyRootfs: m.containerPolicy.ReadonlyRootfs,
+			SecurityOpt:    securityOpts(m.containerPolicy.NoNewPrivileges),
+			NetworkMode:    "ghostconductor",
+		},
+		NetworkingConfig: &network.NetworkingConfig{
+			EndpointsConfig: map[string]*network.EndpointSettings{
+				"ghostconductor": {
+					NetworkID: m.networkID,
+				},
+			},
 		},
 	})
 	if err != nil {
@@ -54,6 +83,13 @@ func (m *Manager) launchContainer(jobID, gcRepos, intent, image, model, provider
 	}
 
 	return resp.ID, nil
+}
+
+func securityOpts(noNewPrivileges bool) []string {
+	if noNewPrivileges {
+		return []string{"no-new-privileges:true"}
+	}
+	return nil
 }
 
 func (m *Manager) stopContainer(containerID string) error {

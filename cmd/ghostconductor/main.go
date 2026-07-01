@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -47,12 +48,30 @@ func main() {
 
 	pullGhostImage(docker, defaultImage)
 
+	networkPolicy, err := loadNetworkPolicy(cfg.BasePath)
+	if err != nil {
+		log.Fatalf("Failed to load network policy: %v", err)
+	}
+
+	containerPolicy, err := loadContainerPolicy(cfg.BasePath)
+	if err != nil {
+		log.Fatalf("Failed to load container policy: %v", err)
+	}
+
+	networkID, err := ensureGCNetwork(docker)
+	if err != nil {
+		log.Fatalf("Failed to create GhostConductor network: %v", err)
+	}
+
 	mgr := &Manager{
-		docker:     docker,
-		config:     cfg,
-		jobs:       make(map[string]*JobStatus),
-		timers:     make(map[string]context.CancelFunc),
-		repoTokens: make(map[string]string),
+		docker:          docker,
+		config:          cfg,
+		jobs:            make(map[string]*JobStatus),
+		timers:          make(map[string]context.CancelFunc),
+		repoTokens:      make(map[string]string),
+		networkPolicy:   networkPolicy,
+		containerPolicy: containerPolicy,
+		networkID:       networkID,
 	}
 
 	router := mux.NewRouter()
@@ -180,6 +199,80 @@ func loadConfig(portFlag *string) Config {
 	}
 }
 
+func loadNetworkPolicy(basePath string) (NetworkPolicy, error) {
+	path := filepath.Join(basePath, "etc", "network-policy.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Warning: network-policy.json not found, using empty policy")
+			return NetworkPolicy{}, nil
+		}
+		return NetworkPolicy{}, fmt.Errorf("failed to read network policy: %w", err)
+	}
+	var policy NetworkPolicy
+	if err := json.Unmarshal(data, &policy); err != nil {
+		return NetworkPolicy{}, fmt.Errorf("failed to parse network policy: %w", err)
+	}
+	log.Printf("Loaded network policy: %d allowed outbound domains", len(policy.AllowedOutbound))
+	return policy, nil
+}
+
+func loadContainerPolicy(basePath string) (ContainerPolicy, error) {
+	path := filepath.Join(basePath, "etc", "container-policy.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("Warning: container-policy.json not found, using defaults")
+			return ContainerPolicy{
+				MemoryLimitMB:   2048,
+				CPULimit:        1.0,
+				NoNewPrivileges: true,
+				PidsLimit:       256,
+			}, nil
+		}
+		return ContainerPolicy{}, fmt.Errorf("failed to read container policy: %w", err)
+	}
+	var policy ContainerPolicy
+	if err := json.Unmarshal(data, &policy); err != nil {
+		return ContainerPolicy{}, fmt.Errorf("failed to parse container policy: %w", err)
+	}
+	log.Printf("Loaded container policy: %dMB memory, %.1f CPU", policy.MemoryLimitMB, policy.CPULimit)
+	return policy, nil
+}
+
+func ensureGCNetwork(docker *client.Client) (string, error) {
+	ctx := context.Background()
+
+	result, err := docker.NetworkList(ctx, client.NetworkListOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to list networks: %w", err)
+	}
+
+	for _, n := range result.Items {
+		if n.Name == "ghostconductor" {
+			log.Printf("Using existing ghostconductor network: %s", n.ID)
+			return n.ID, nil
+		}
+	}
+
+	resp, err := docker.NetworkCreate(ctx, "ghostconductor", client.NetworkCreateOptions{
+		Driver: "bridge",
+		Options: map[string]string{
+			"com.docker.network.bridge.enable_icc":           "false",
+			"com.docker.network.bridge.enable_ip_masquerade": "true",
+		},
+		Labels: map[string]string{
+			"project": "ghostconductor",
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create network: %w", err)
+	}
+
+	log.Printf("Created ghostconductor network: %s", resp.ID)
+	return resp.ID, nil
+}
+
 func openBrowser(url string) {
 	var cmd string
 	var args []string
@@ -287,6 +380,16 @@ func runUninstall() {
 				fmt.Printf("Warning: failed to remove %s: %v\n", image, err)
 			} else {
 				fmt.Printf("Removed: %s\n", image)
+			}
+		}
+
+		result, err := docker.NetworkList(ctx, client.NetworkListOptions{})
+		if err == nil {
+			for _, n := range result.Items {
+				if n.Name == "ghostconductor" {
+					docker.NetworkRemove(ctx, n.ID, client.NetworkRemoveOptions{})
+					fmt.Printf("Removed network: ghostconductor\n")
+				}
 			}
 		}
 	}

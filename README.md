@@ -1,78 +1,44 @@
-# ghostconductor
+![Ghost Conductor - AI Agent Orchestration](gc_hero.png)
 
-Ghost Conductor — run autonomous AI software engineering agents on your local machine.
+**Ghost Conductor** is an AI agent orchestration platform. Set your context, choose an intent, and describe the task — your ghosts read the codebase, write the code, and open a pull request for your review.
 
-Set your context, choose an intent, and describe the task. Support for Anthropic, OpenAI, and Google models — bring your own API keys. Mix and match depending on the task, or run them simultaneously on the same project. Track token usage and costs per job, per provider, and per model. Memory persists across runs and is fully editable, so your ghosts get smarter over time.
+Support for Anthropic, OpenAI, and Google models. Bring your own API keys and monitor costs per job, per provider, per model.
 
-Each agent runs in an isolated Docker container on a dedicated branch, torn down after each job leaving only the code it wrote.
+## Mac
 
-## Requirements
-
-- macOS (Apple Silicon or Intel)
-- [Rancher Desktop](https://rancherdesktop.io) — required for Docker support
-  - Container engine must be set to **dockerd (moby)**
-
-## Install
-
-**Via Homebrew:**
 ```bash
-# install 
-brew tap ghostconductor/ghostconductor
-brew install ghostconductor
-# run
+brew tap GhostConductor/ghostconductor
+brew install --cask ghostconductor
 ghostconductor
 ```
 
-**Or download the binary directly:**
+## Server (AWS)
 
-[Download latest release](https://github.com/GhostConductor/ghostconductor/releases/latest)
-
-Then run:
-```bash
-chmod +x ghostconductor
-xattr -rd com.apple.quarantine ghostconductor
-./ghostconductor
-```
-
-On first launch, ghostconductor will:
-1. Ask where to store your data (default: `~/ghostconductor/`)
-2. Check that Rancher Desktop is running
-3. Pull the gc-ghost agent image from ghcr.io
-4. Open the UI at `http://localhost:7777`
-
-## Uninstall
+Deploy to AWS using the CloudFormation template:
 
 ```bash
-brew uninstall ghostconductor
+aws cloudformation deploy \
+  --template-file https://github.com/GhostConductor/ghostconductor/releases/latest/download/server.yaml \
+  --stack-name gc-server \
+  --parameter-overrides \
+    KeyName=your-key-pair \
+    IamInstanceProfile=your-instance-profile \
+    SubnetId=subnet-xxxxxxxx \
+    SecurityGroupId=sg-xxxxxxxx \
+  --region us-west-2
 ```
 
-To also remove all data and Docker images:
-```bash
-rm -rf ~/.ghostconductor
-rm -rf ~/ghostconductor
-docker container prune -f
-docker rmi ghcr.io/ghostconductor/gc-ghost:latest
-docker rmi ghcr.io/ghostconductor/gc-ghost:dev
-```
+See [server deployment guide](deploy/cf/standalone/server.md) for prerequisites and security group recommendations.
 
-## Port
+## Customization
 
-ghostconductor runs on port `7777` by default. To use a different port:
+Fork this repo to customize prompts, context templates, and policies — then ship your own release.
 
-```bash
-ghostconductor --port 8888
-```
+- **Prompts** — `prompts/intent/` — one `.md` file per intent
+- **Context** — `context/` — context templates loaded into every job
+- **Network policy** — `config/network-policy.json` — allowed outbound domains for agent containers
+- **Container policy** — `config/container-policy.json` — resource limits and security settings
 
-## Using Docker Desktop instead of Rancher Desktop
+## Agents
 
-```bash
-GC_DOCKER_SOCKET=/var/run/docker.sock ghostconductor
-```
-
-## Contributing
-
-ghostconductor is part of the Ghost Conductor platform. At this stage we are not accepting outside PRs. Issues and feedback welcome.
-
-## License
-
-MIT
+- [ghost](https://github.com/GhostConductor/ghost) — the agent runtime image

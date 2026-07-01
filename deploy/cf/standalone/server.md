@@ -1,4 +1,4 @@
-# GhostConductor — Standalone Deployment
+# GhostConductor — Standalone Server Deployment
 
 A single EC2 instance running GhostConductor. One server, one project. Ideal for personal use or small teams.
 
@@ -8,6 +8,7 @@ A single EC2 instance running GhostConductor. One server, one project. Ideal for
 - GhostConductor binary installed and running as a systemd service
 - Docker installed and running
 - CloudWatch agent configured for logs
+- Isolated `ghostconductor` Docker network for agent containers
 
 ## Prerequisites
 
@@ -30,8 +31,7 @@ Recommended inbound rules:
 | Port | Protocol | Source | Purpose |
 |------|----------|--------|---------|
 | 7777 | TCP | Your IP only | GhostConductor UI |
-| 443 | TCP | Your IP only | HTTPS |
-| 80 | TCP | Your IP only | HTTP |
+| 22 | TCP | Your IP only | SSH access |
 
 Recommended outbound rules:
 
@@ -39,6 +39,8 @@ Recommended outbound rules:
 |------|----------|-------------|---------|
 | 443 | TCP | 0.0.0.0/0 | GitHub, Docker Hub, AI provider APIs, package repos |
 | 53 | UDP | 0.0.0.0/0 | DNS |
+
+> Agent containers run on an isolated Docker network with ICC disabled. Outbound access is further restricted via `network-policy.json`.
 
 ## IAM Instance Profile
 
@@ -59,9 +61,13 @@ Your instance profile needs the following permissions:
 
 ## Deploy
 
+Download the template and deploy:
+
 ```bash
+curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/server.yaml -o server.yaml
+
 aws cloudformation deploy \
-  --template-file host.yaml \
+  --template-file server.yaml \
   --stack-name gc-server \
   --parameter-overrides \
     KeyName=your-key-pair \
@@ -91,9 +97,8 @@ Edit `/etc/systemd/system/ghostconductor.env` to configure:
 |----------|---------|---------|
 | `GC_BASE_PATH` | `/opt/ghostconductor` | Base data directory |
 | `GC_PORT` | `7777` | HTTP port |
-| `GC_ANTHROPIC_API_KEY` | — | Anthropic API key |
-| `GC_OPENAI_API_KEY` | — | OpenAI API key |
-| `GC_GOOGLE_API_KEY` | — | Google API key |
+
+> API keys are set via the GhostConductor UI — never store them in env files.
 
 After editing, restart the service:
 
@@ -105,4 +110,6 @@ sudo systemctl restart ghostconductor
 
 - **Prompts** — edit or add files in `/opt/ghostconductor/etc/prompts/`
 - **Context** — edit `/opt/ghostconductor/etc/CONTEXT.md`
-- **Fork** — fork the [GhostConductor repo](https://github.com/GhostConductor/ghostconductor) to customize prompts and ship your own release
+- **Network policy** — edit `/opt/ghostconductor/etc/network-policy.json` to control agent outbound access
+- **Container policy** — edit `/opt/ghostconductor/etc/container-policy.json` to control resource limits
+- **Fork** — fork the [GhostConductor repo](https://github.com/GhostConductor/ghostconductor) to customize and ship your own release

@@ -89,6 +89,8 @@ homebrew_casks:
         uninstall: |
           system_command "/bin/rm", args: ["-rf", "#{Dir.home}/ghostconductor"]
           system_command "/bin/rm", args: ["-rf", "#{Dir.home}/.ghostconductor"]
+          system_command "/usr/bin/env", args: ["docker", "rmi", "--force", "ghcr.io/ghostconductor/ghost:latest"]
+          system_command "/usr/bin/env", args: ["docker", "rmi", "--force", "ghcr.io/ghostconductor/ghost:dev"]
 
 checksum:
   name_template: "checksums.txt"

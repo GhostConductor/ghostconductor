@@ -8,8 +8,8 @@ before:
     - npm run build --prefix ui
     - mkdir -p cmd/ghostconductor/ui/dist
     - cp -r ui/dist/ cmd/ghostconductor/ui/dist/
-    - tar -czf config/prompts.tar.gz config/prompts/
-    - tar -czf config/context.tar.gz config/context/
+    - tar -czf config/prompts.tar.gz -C config prompts/
+    - tar -czf config/context.tar.gz -C config context/
 
 builds:
   - main: ./cmd/ghostconductor

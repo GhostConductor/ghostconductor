@@ -26,7 +26,7 @@ builds:
 archives:
   - formats:
       - tar.gz
-    name_template: "ghostconductor-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    name_template: "ghostconductor-{{ .Os }}-{{ .Arch }}"
 
 nfpms:
   - package_name: ghostconductor

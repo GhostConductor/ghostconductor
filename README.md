@@ -1,6 +1,8 @@
 ![Ghost Conductor - AI Agent Orchestration](cmd/ghostconductor/ui/dist/images/gc_hero.png)
 
-**Ghost Conductor** is an AI agent orchestration platform. Set your context, choose an intent, and describe the task — your ghosts read the codebase, write the code, and open a pull request for your review.
+**Ghost Conductor** is not your average coding assistant — it's a AI agent orchestration platform running a fleet of autonomous agents in disposable, sandboxed containers.
+
+Set your context, choose an intent, and describe the task — your ghosts check out your code, and open a pull request for your review.
 
 Support for Anthropic, OpenAI, and Google models. Bring your own API keys and monitor costs per job, per provider, per model.
 

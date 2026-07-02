@@ -1,8 +1,10 @@
 ## What is Ghost Conductor?
-Ghost Conductor is an AI agent orchestration toolkit. Set your context, choose an intent, and describe the task — your ghosts read the codebase, write the code, and open a pull request for your review.
+Ghost Conductor is not a coding assistant — it's a fleet of autonomous agents in disposable, sandboxed containers.
 
-## How it works
-Each ghost is an autonomous software engineer running inside an ephemeral Docker container. Ghosts support Anthropic, OpenAI, and Google models — bring your own API keys and mix and match models depending on the task. Run multiple ghosts simultaneously on the same project. When the job is done, the container is destroyed — leaving only the code it wrote.
+Set your context, choose an intent, and describe the task — your ghosts check out your codebase, write the code, and open a pull request for your review.
+
+## What is a Ghost?
+A ghost is an autonomous software engineer running inside an ephemeral container. Ghosts support Anthropic, OpenAI, and Google models — bring your own API keys and mix and match models depending on the task. Run multiple ghosts simultaneously on the same project. When the job is done, the container is destroyed — leaving only the code it wrote.
 
 ## Usage & Cost Monitoring
 Track token usage and costs per job, per provider, and per model. You control your AI provider billing — Ghost Conductor never touches your keys after they're set.

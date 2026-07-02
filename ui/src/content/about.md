@@ -1,19 +1,19 @@
-## What is Ghost Conductor?
-Ghost Conductor is not just a coding tool — it's an orchestration platform running a fleet of autonomous AI agents in disposable, sandboxed containers.
+## How to Use Ghost Conductor
 
-Set your context, choose an intent, and describe the task — ghosts will checkout code and open pull requests for your review.
+**1. Set your API key**
+Go to **Providers** and set your API key. Keys are stored in memory, never in clear text — if the app restarts, you'll need to re-enter it.
 
-## What is a Ghost?
-A ghost is an autonomous software engineer running inside an ephemeral container. Ghosts support Anthropic, OpenAI, and Google models — bring your own API keys and mix and match models depending on the task. Run multiple ghosts simultaneously on the same project. When the job is done, the container is destroyed — leaving only the code it wrote.
+**2. Add a repo**
+Go to **Repos** and click **Add Repo**. Provide a name, URL, and branch. After adding, click into the repo card to set your GitHub token. Be sure to create a PAT scoped with minimal, secure permissions.
 
-## Usage & Cost Monitoring
-Track token usage and costs per job, per provider, and per model. You control your AI provider billing — Ghost Conductor never touches your keys after they're set.
+**3. Summon a ghost**
+Go to **Summonings** and click **Conjure Spirit**:
+   - Choose an intent
+   - Describe the task
+   - Pick your model/provider (only models with configured keys will appear)
 
-## Memory
-Memory persists across runs and is fully editable. Ghosts learn the patterns and conventions of your codebase over time, producing better results with every job.
+**4. Review the PR**
+When the ghost finishes, it opens a pull request. Review, request changes, or merge.
 
-## Key Principles
-- **Ephemeral containers, persistent storage** — containers tear down, artifacts survive
-- **Git as the interaction layer** — input, output, audit trail, and memory
-- **Human in the loop** — agents propose, humans approve via pull request
-- **Bring your own keys** — you control your AI provider billing
+**5. Monitor usage**
+Track token cost per job, per provider, and per model on the **Summonings** and **Providers** pages.

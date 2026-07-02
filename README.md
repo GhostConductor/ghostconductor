@@ -1,4 +1,4 @@
-![Ghost Conductor - AI Agent Orchestration](gc_hero.png)
+![Ghost Conductor - AI Agent Orchestration](cmd/ghostconductor/ui/dist/images/gc_hero.png)
 
 **Ghost Conductor** is an AI agent orchestration platform. Set your context, choose an intent, and describe the task — your ghosts read the codebase, write the code, and open a pull request for your review.
 

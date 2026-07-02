@@ -16,13 +16,15 @@ brew install --cask ghostconductor
 ghostconductor
 ```
 
-### Server (AWS)
+### Server
 
-Deploy to AWS using the CloudFormation template:
+Deploy to AWS using CloudFormation:
 
 ```bash
+curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/server.yaml -o server.yaml
+
 aws cloudformation deploy \
-  --template-file https://github.com/GhostConductor/ghostconductor/releases/latest/download/server.yaml \
+  --template-file server.yaml \
   --stack-name gc-server \
   --parameter-overrides \
     KeyName=your-key-pair \

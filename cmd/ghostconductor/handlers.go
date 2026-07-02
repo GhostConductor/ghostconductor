@@ -14,6 +14,14 @@ import (
 	"github.com/moby/moby/client"
 )
 
+// HelloWorld handles GET /helloworld
+func (m *Manager) HelloWorld(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Hello, World!",
+	})
+}
+
 // SubmitJob handles POST /jobs
 func (m *Manager) SubmitJob(w http.ResponseWriter, r *http.Request) {
 	var req JobRequest

@@ -10,6 +10,9 @@ func RegisterRoutes(r *mux.Router, m *Manager) {
 	// Health
 	api.HandleFunc("/health", m.Health).Methods("GET")
 
+	// Hello World
+	api.HandleFunc("/helloworld", m.HelloWorld).Methods("GET")
+
 	// Config
 	api.HandleFunc("/config", m.GetConfig).Methods("GET")
 	api.HandleFunc("/config", m.UpdateConfig).Methods("POST")

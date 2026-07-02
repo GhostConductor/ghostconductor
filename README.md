@@ -2,7 +2,7 @@
 
 **Ghost Conductor** is not just a coding tool — it's an orchestration platform running a fleet of autonomous AI agents in disposable, sandboxed containers.
 
-Set your context, choose an intent, and describe the task — your ghosts check out your code, and open a pull request for your review.
+Set your context, choose an intent, and describe the task — ghosts will checkout code and open pull requests for your review.
 
 Support for Anthropic, OpenAI, and Google models. Bring your own API keys and monitor costs per job, per provider, per model.
 

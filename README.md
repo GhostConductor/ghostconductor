@@ -1,11 +1,14 @@
 ![Ghost Conductor - AI Agent Orchestration](cmd/ghostconductor/ui/dist/images/gc_hero.png)
 
-**Ghost Conductor** is an AI agent orchestration platform that runs a fleet of autonomous software engineers in disposable, sandboxed containers.
+## What is Ghost Conductor?
+Ghost Conductor is an AI agent orchestration platform that runs a fleet of autonomous software engineers in disposable, sandboxed containers.
 - Set your context, choose an intent, and describe the task — Ghosts work on your tasks, creating pull requests for review.
 - Run multiple Ghosts simultaneously or one Ghost at a time.  When the job is done, the container is destroyed — leaving only the code it wrote.
 - Support Anthropic, OpenAI, and Google models — bring your own API keys and mix and match models depending on the task.
 
-## Mac
+## Get Started
+
+### Mac
 
 ```bash
 brew tap GhostConductor/ghostconductor
@@ -13,7 +16,7 @@ brew install --cask ghostconductor
 ghostconductor
 ```
 
-## Server (AWS)
+### Server (AWS)
 
 Deploy to AWS using the CloudFormation template:
 

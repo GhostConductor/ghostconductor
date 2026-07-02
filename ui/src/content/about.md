@@ -1,5 +1,5 @@
 ## What is Ghost Conductor?
-Ghost Conductor is not just a coding tool — it's an orchestration platform running a fleet of autonomous AI agents in disposable, sandboxed containers.
+Ghost Conductor is a container orchestration platform that runs a fleet of autonomous AI agents in disposable, sandboxed containers.
 
 Set your context, choose an intent, and describe the task — ghosts will checkout code and open pull requests for your review.
 

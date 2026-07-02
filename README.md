@@ -11,18 +11,21 @@ Ghost Conductor is an AI agent orchestration platform that runs a fleet of auton
 ### Mac
 
 ```bash
+# install via brew cask
 brew tap GhostConductor/ghostconductor
 brew install --cask ghostconductor
+
+# run
 ghostconductor
 ```
 
-### Server
-
-Deploy to AWS using CloudFormation:
+### AWS Deployment
 
 ```bash
+# download latest server release
 curl -L https://github.com/GhostConductor/ghostconductor/releases/latest/download/server.yaml -o server.yaml
 
+# Deploy to AWS using CloudFormation
 aws cloudformation deploy \
   --template-file server.yaml \
   --stack-name gc-server \
